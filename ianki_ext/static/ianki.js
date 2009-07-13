@@ -8,6 +8,65 @@ var autoSync = 0;
 var iAnki;
 var iAnkiDebug = false;
 
+// Remove additional spaces and replaces newlines and tabs.
+function condenseSpaces(text) {
+  var l = text.length;
+  var i = 0;
+  var r = '';
+  last_ch = '';
+  while (i < l) {
+    ch = text[i];
+    if (ch == '\n' || ch == '\t') { ch = ' '; }
+    if (ch != ' ' || last_ch != ' ') {
+      r += ch;
+    }
+    last_ch = ch;
+    ++i;
+  }
+  return r;
+}
+
+// Removes extra line breaks.
+function stripEmptyLines(text) {
+  var out = text;
+  var last = '';
+  while (last != out) {
+    last = out;
+    out = out.replace('<br><br>', '<br>');
+  }
+  return out;
+}
+
+function stripTag(text, tag) {
+  var out = text;
+  var last = '';
+  while(last != out) {
+    last = out;
+    var i = out.indexOf('<' + tag);
+    if (i >= 0) {
+      var front = out.substr(0, i);
+      var rest = out.substr(i+1);
+      var back = rest.substr(rest.indexOf('>')+1);
+      out = front + back;
+    }
+  }
+  return out;
+}
+
+// Format questions and answers text.
+function formatQA(text) {
+  var out = text;
+
+  // Images are not supported on the phone: remove img tags.
+  out = stripTag(out, 'img');
+  // Remove extra spaces and newlines.
+  out = condenseSpaces(out);
+  // Remove empty lines.
+  out = stripEmptyLines(out);
+
+  return out;
+}
+
 function anki_log(str){
     if(iAnkiDebug){
         try {
@@ -998,8 +1057,8 @@ Deck.prototype.nextCard = function() {
 		function(card){
             if(card != null){
                 self.currCard = new cloneObject(card);
-                $('question').innerHTML = (( self.currCard.question ));
-                $('answer').innerHTML = (( self.currCard.answer ));
+                $('question').innerHTML = formatQA(( self.currCard.question ));
+                $('answer').innerHTML = formatQA(( self.currCard.answer ));
                 $('showAnswerDiv').style.display = 'block';
                 $('answerSide').style.display = 'none';
 
@@ -2203,17 +2262,19 @@ IAnki.prototype.chooseDeck = function(really){
         dbTransaction(self.dbBase,
             function(tx)
             {
-                var rows = "<table style='font-size: 20px; margin: 16px'>";
+                var rows = "<table cellpadding=0 cellspacing=0 style='font-size: 20px; margin: 16px'>";
                 var result = deckQ.result();
                 if(result.rows.length > 0){
                     for(var d = 0; d < result.rows.length; d++){
                         var name = result.rows.item(d).name;
                         rows += "<tr>"
-                        rows += "<td><a style='color:#0000C0' onclick='iAnki.setDeck(\"" + name + "\")'><u>"+name+"</u></a></td> ";
-                        rows += "<td><a style='color:#0000C0'onclick='iAnki.chooseDeck(\"" + name + "\")'><u>Delete</u></a> ";
+                        rows += "<td><a style='color:#0000C0' onclick='iAnki.setDeck(\"" + name + "\")'>"+name+"</a></td> ";
                         if(name == really) {
+                            rows += "<td align=right><a style='color:#0000C0'onclick='iAnki.chooseDeck(\"" + name + "\")'>Delete</a> ";
                             rows += "<span>Sure? </span> "
-                            rows += "<a style='color:#0000C0' onclick='iAnki.deleteDeck(\"" + name + "\")'><u>Yes</u></a>";
+                            rows += "<a style='color:#0000C0' onclick='iAnki.deleteDeck(\"" + name + "\")'>Yes</a>";
+                        } else {
+                            rows += "<td colspan=2 align=right><a style='color:#0000C0'onclick='iAnki.chooseDeck(\"" + name + "\")'>Delete</a> ";
                         }
                         rows += "</td></tr>";
                     }

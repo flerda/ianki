@@ -87,6 +87,10 @@ def geniAnki(self):
     f = open(iankiPath+'/static/base.css')
     css = f.read()
     f.close()
+    if iPhone:
+        f = open(iankiPath+'/static/iphone.css')
+        css += f.read()
+        f.close()
 
     if iPhone:
         f = open(iankiPath+'/static/anki-logo.png', 'rb')
